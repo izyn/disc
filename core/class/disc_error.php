@@ -14,24 +14,16 @@ if(!defined('IN_DISC')) {
 class disc_error
 {
 
-	public static function system_error($message, $show = true, $save = false, $halt = true) {
+	public static function system_error($error) {
 
 		list($showtrace, $logtrace) = disc_error::debug_backtrace();
 
-		if($save) {
-			$messagesave = '<b>'.$message.'</b><br><b>PHP:</b>'.$logtrace;
-			disc_error::write_error_log($messagesave);
-		}
+		if(is_array($error))
+			$message = ucfirst(substr($error['message'], 0, stripos($error['message'], ',') ? stripos($error['message'], ',') : 100)).': '.$error['message'].' in '.$error['file'].' on line '.$error['line'];
+		else 
+			$message = $error;
 
-		if($show) {
-			disc_error::show_error('system', $message, $showtrace, 0);
-		}
-
-		if($halt) {
-			exit();
-		} else {
-			return $message;
-		}
+		disc_error::show_error('system', $message, $showtrace, 0);
 	}
 
 	public static function template_error($message, $tplname) {
@@ -52,7 +44,7 @@ class disc_error
 			$func .= isset($error['type']) ? $error['type'] : '';
 			$func .= isset($error['function']) ? $error['function'] : '';
 			if (empty($error['line'])) {
-				continue;
+				$error['line'] = 0;
 			}
 			$error['line'] = sprintf('%04d', $error['line']);
 			$show .= "<code>[Line: $error[line]]".$file."($func)</code>";
@@ -123,34 +115,17 @@ class disc_error
 		$trace[] = array('file'=>$exception->getFile(), 'line'=>$exception->getLine(), 'function'=> 'break');
 		$phpmsg = array();
 		foreach ($trace as $error) {
+			if (empty($error['file'])) {
+				continue;
+			}
 			if(!empty($error['function'])) {
 				$fun = '';
 				if(!empty($error['class'])) {
 					$fun .= $error['class'].$error['type'];
 				}
-				$fun .= $error['function'].'(';
-				if(!empty($error['args'])) {
-					$mark = '';
-					foreach($error['args'] as $arg) {
-						$fun .= $mark;
-						if(is_array($arg)) {
-							$fun .= 'Array';
-						} elseif(is_bool($arg)) {
-							$fun .= $arg ? 'true' : 'false';
-						} elseif(is_int($arg)) {
-							$fun .= (defined('DISC_DEBUG') && DISC_DEBUG) ? $arg : '%d';
-						} elseif(is_float($arg)) {
-							$fun .= (defined('DISC_DEBUG') && DISC_DEBUG) ? $arg : '%f';
-						} else {
-							$fun .= (defined('DISC_DEBUG') && DISC_DEBUG) ? '\''.dhtmlspecialchars(substr(self::clear($arg), 0, 10)).(strlen($arg) > 10 ? ' ...' : '').'\'' : '%s';
-						}
-						$mark = ', ';
-					}
-				}
-
-				$fun .= ')';
-				$error['function'] = $fun;
+				$error['function'] = $fun.$error['function'];
 			}
+
 			$phpmsg[] = array(
 			    'file' => $error['file'],
 			    'line' => $error['line'],
@@ -165,8 +140,9 @@ class disc_error
 
 	public static function show_error($type, $errormsg, $phpmsg = '', $typemsg = '') {
 
-		//ob_end_clean();
-		//ob_start('ob_gzhandler');
+		ob_end_clean();
+		$gzip = is_allowgzip();
+		ob_start($gzip ? 'ob_gzhandler' : null);
 
 		$host = $_SERVER['HTTP_HOST'];
 		$title = $type == 'db' ? 'Database' : 'System';
@@ -217,6 +193,8 @@ class disc_error
         padding: 12px 10px 12px 10px;
     }
 
+    #message {color:red;}
+
     #body {
         margin: 0 15px 0 15px;
     }
@@ -242,7 +220,7 @@ class disc_error
 <div id="container">
 <h1>DiscPHP! $title Error</h1>
 <div id="body">
-<p><strong>$errormsg</strong></p>
+<p id="message"><strong>$errormsg</strong></p>
 EOT;
 		if(!empty($phpmsg)) {
 			if(is_array($phpmsg)) {

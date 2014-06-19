@@ -11,6 +11,43 @@ if(!defined('IN_DISC')) {
 	exit('Access Denied');
 }
 
+function system_error($message) {
+	disc_error::system_error($message);
+}
+
+function is_allowgzip() {
+	if(!empty($_SERVER['HTTP_ACCEPT_ENCODING']) && strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') === false) {
+		return false;
+	} else 
+		return true;
+}
+
+function dstripslashes($string) {
+	if(empty($string)) return $string;
+	if(is_array($string)) {
+		foreach($string as $key => $val) {
+			$string[$key] = dstripslashes($val);
+		}
+	} else {
+		$string = stripslashes($string);
+	}
+	return $string;
+}
+
+function daddslashes($string, $force = 1) {
+	if(is_array($string)) {
+		$keys = array_keys($string);
+		foreach($keys as $key) {
+			$val = $string[$key];
+			unset($string[$key]);
+			$string[addslashes($key)] = daddslashes($val, $force);
+		}
+	} else {
+		$string = addslashes($string);
+	}
+	return $string;
+}
+
 function dhtmlspecialchars($string, $flags = null) {
 	if(is_array($string)) {
 		foreach($string as $key => $val) {

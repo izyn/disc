@@ -13,6 +13,9 @@ if(!defined('IN_DISC')) {
 
 class disc_application
 {
+
+	var $var = array();
+
 	static function &instance() {
 		static $object;
 		if(empty($object)) {
@@ -25,6 +28,7 @@ class disc_application
 		$this->_init_env();
 		$this->_init_config();
 		$this->_init_input();
+		$this->_init_uri();
 		$this->_init_output();
 	}
 
@@ -50,7 +54,12 @@ class disc_application
 	private function _init_config() {
 
 		$_config = array();
-		@include SOURCE_PATH.'./config/config.php';
+
+		@include(SOURCE_PATH.'./config/config.php');
+
+		if(is_file(SOURCE_PATH.'./config/'.APPNAME.'_config.php')) {
+			@include(SOURCE_PATH.'./config/'.APPNAME.'_config.php');
+		}
 
 		if(empty($_config['debug'])) {
 			error_reporting(0);
@@ -62,13 +71,58 @@ class disc_application
 		} else {
 			error_reporting(0);
 		}
+
+		$this->var = & $_config;
 	}
 
 	private function _init_input() {
-1
+		if (isset($_GET['GLOBALS']) ||isset($_POST['GLOBALS']) ||  isset($_COOKIE['GLOBALS']) || isset($_FILES['GLOBALS'])) {
+			system_error('request_tainting');
+		}
+
+		if(MAGIC_QUOTES_GPC) {
+			$_GET = dstripslashes($_GET);
+			$_POST = dstripslashes($_POST);
+			$_COOKIE = dstripslashes($_COOKIE);
+		}
+
+		$this->_xss_check();
 	}
 
 	private function _init_output() {
 
+		$allowgzip = is_allowgzip();
+
+		if(!ob_start($allowgzip ? 'ob_gzhandler' : null)) {
+			ob_start();
+		}
+
+		@header('Content-Type: text/html; charset=utf-8');
+	}
+
+	private function _xss_check() {
+
+		static $check = array('"', '>', '<', '\'', '(', ')', 'CONTENT-TRANSFER-ENCODING');
+
+		if($_SERVER['REQUEST_METHOD'] == 'GET' ) {
+			$temp = $_SERVER['REQUEST_URI'];
+		} else {
+			//$temp = $_SERVER['REQUEST_URI'].file_get_contents('php://input');
+			$temp = '';
+		}
+
+		$temp = strtoupper(urldecode(urldecode($temp)));
+		foreach ($check as $str) {
+			if(strpos($temp, $str) !== false) {
+				system_error('request_tainting');
+			}
+		}
+
+		return true;
+	}
+
+	private function _init_uri() {
+
+		$router = new disc_router();
 	}
 }

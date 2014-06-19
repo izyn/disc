@@ -24,5 +24,3 @@
 define('APPNAME', 'application');
 
 require_once './core/disc.php';
-
-echo 'a';

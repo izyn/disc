@@ -12,7 +12,6 @@ error_reporting(E_ALL);
 define('IN_DISC', true);
 define('CORE_PATH', dirname(__FILE__));
 
-if(!defined('SOURCE_PATH')) define('SOURCE_PATH', dirname(dirname(__FILE__)).'/source');
 if(!defined('APPNAME')) define('APPLICATION_PATH', dirname(dirname(__FILE__)).'/application');
 else define('APPLICATION_PATH', dirname(dirname(__FILE__)).'/'.APPNAME);
 

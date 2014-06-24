@@ -55,11 +55,7 @@ class disc_application
 
 		$_config = array();
 
-		@include(SOURCE_PATH.'./config/config.php');
-
-		if(is_file(SOURCE_PATH.'./config/'.APPNAME.'_config.php')) {
-			@include(SOURCE_PATH.'./config/'.APPNAME.'_config.php');
-		}
+		@include(APPLICATION_PATH.'./conf/config.php');
 
 		if(empty($_config['debug'])) {
 			error_reporting(0);
@@ -70,6 +66,10 @@ class disc_application
 			}
 		} else {
 			error_reporting(0);
+		}
+
+		if (empty($_config)) {
+			system_error('Oops! Invalid Config!');
 		}
 
 		$this->var = & $_config;
@@ -123,6 +123,7 @@ class disc_application
 
 	private function _init_uri() {
 
-		$router = new disc_router();
+		$router = new disc_router($this->var);
+		var_dump($this->var);exit();
 	}
 }

@@ -20,7 +20,10 @@
  *	APPNAME 应用名称(必须)，该应用核心代码默认路径为 ./{APPNAME}
  *
  */
-
+$stime=microtime(true);
 define('APPNAME', 'application');
 
 require_once './core/disc.php';
+$etime=microtime(true);
+$total=$etime-$stime;
+echo "<br>程序执行时间：".$total;

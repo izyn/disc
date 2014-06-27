@@ -28,8 +28,8 @@ class disc_application
 		$this->_init_env();
 		$this->_init_config();
 		$this->_init_input();
-		$this->_init_uri();
 		$this->_init_output();
+		$this->_init_uri();
 	}
 
 	private function _init_env() {
@@ -53,6 +53,7 @@ class disc_application
 
 	private function _init_config() {
 
+		global $_config;
 		$_config = array();
 
 		@include(APPLICATION_PATH.'./conf/config.php');
@@ -97,7 +98,7 @@ class disc_application
 			ob_start();
 		}
 
-		@header('Content-Type: text/html; charset=utf-8');
+		header('Content-Type: text/html; charset=utf-8');
 	}
 
 	private function _xss_check() {
@@ -124,6 +125,6 @@ class disc_application
 	private function _init_uri() {
 
 		$router = new disc_router($this->var);
-		var_dump($this->var);exit();
+		$router->router();
 	}
 }

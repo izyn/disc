@@ -4,10 +4,11 @@ if(!defined('IN_DISC')) {
 	exit('Access Denied');
 }
 
-class index extends controller {
+class index_controller extends disc_controller {
 
 	function index() {
 
-		echo 'Hello world!';
+		$data['name'] = "David";
+		$this->view($data);
 	}
 }

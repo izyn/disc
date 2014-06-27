@@ -20,7 +20,6 @@ class disc_router
 		$this->_config = & $global_config['router'];
 		$this->uri_model = empty($global_config['uri_model']) ? 1 : $global_config['uri_model'];
 		$this->_init();
-		$this->_router();
 	}
 
 	private function _init() {
@@ -30,7 +29,7 @@ class disc_router
 		$this->_config['action_default'] = empty($this->_config['action_default']) ? "c" : $this->_config['action_default'];
 	}
 
-	private function _router() {
+	public function router() {
 		if ($this->uri_model == 1) {
 			$this->uri_querystring();
 		} elseif ($this->uri_model == 2) {
@@ -44,6 +43,17 @@ class disc_router
 			system_error("Oops! Controller file lost: ".$file);
 		}
 		include($file);
+
+		$controller_class = $this->_config['controller'].'_controller';
+		if (class_exists($controller_class)) {
+			$controller = new $controller_class;
+			$action = $this->_config['action'];
+			if (method_exists($controller, $action)) {
+				$controller->$action();
+			}
+		} else {
+			system_error("Oops! Controller class lost: ".$this->_config['controller']);
+		}
 	}
 
 	private function uri_querystring() {

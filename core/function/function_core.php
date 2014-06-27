@@ -15,6 +15,19 @@ function system_error($message) {
 	disc_error::system_error($message);
 }
 
+function getconfig($key) {
+	global $_config;
+	$key = explode("/", $key);
+	$v = $_config;
+	foreach ($key as $k) {
+		if (!isset($v[$k])) {
+			return null;
+		}
+		$v = $v[$k];
+	}
+	return $v;
+}
+
 function is_allowgzip() {
 	if(!empty($_SERVER['HTTP_ACCEPT_ENCODING']) && strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') === false) {
 		return false;

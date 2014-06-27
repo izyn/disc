@@ -102,4 +102,4 @@ class core
 }
 
 class C extends core {}
-//class DB extends disc_database {}
+class DB extends disc_database {}

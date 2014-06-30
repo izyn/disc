@@ -58,56 +58,20 @@ class disc_error
 
 		list($showtrace, $logtrace) = disc_error::debug_backtrace();
 
-		$title = lang('error', 'db_'.$message);
-		$title_msg = lang('error', 'db_error_message');
-		$title_sql = lang('error', 'db_query_sql');
-		$title_backtrace = lang('error', 'backtrace');
-		$title_help = lang('error', 'db_help_link');
-
-		$db = &DB::object();
+		$db = DB::object();
 		$dberrno = $db->errno();
-		$dberror = str_replace($db->tablepre,  '', $db->error());
 		$sql = dhtmlspecialchars(str_replace($db->tablepre,  '', $sql));
 
-		$msg = '<li>[Type] '.$title.'</li>';
-		$msg .= $dberrno ? '<li>['.$dberrno.'] '.$dberror.'</li>' : '';
-		$msg .= $sql ? '<li>[Query] '.$sql.'</li>' : '';
+		$msg = '[code:'.$dberrno.'] '.$message.' ('.$sql.')';
 
 		disc_error::show_error('db', $msg, $showtrace, false);
-		unset($msg, $phperror);
-
-		$errormsg = '<b>'.$title.'</b>';
-		$errormsg .= "[$dberrno]<br /><b>ERR:</b> $dberror<br />";
-		if($sql) {
-			$errormsg .= '<b>SQL:</b> '.$sql;
-		}
-		$errormsg .= "<br />";
-		$errormsg .= '<b>PHP:</b> '.$logtrace;
-
-		disc_error::write_error_log($errormsg);
 		exit();
 
 	}
 
 	public static function exception_error($exception) {
 
-		if($exception instanceof DbException) {
-			$type = 'db';
-		} else {
-			$type = 'system';
-		}
-
-		if($type == 'db') {
-			$errormsg = '('.$exception->getCode().') ';
-			$errormsg .= self::sql_clear($exception->getMessage());
-			if($exception->getSql()) {
-				$errormsg .= '<div class="sql">';
-				$errormsg .= self::sql_clear($exception->getSql());
-				$errormsg .= '</div>';
-			}
-		} else {
-			$errormsg = $exception->getMessage();
-		}
+		$errormsg = $exception->getMessage();
 
 		$trace = $exception->getTrace();
 		krsort($trace);
@@ -133,7 +97,7 @@ class disc_error
 			);
 		}
 
-		self::show_error($type, $errormsg, $phpmsg);
+		self::show_error('system', $errormsg, $phpmsg);
 		exit();
 
 	}

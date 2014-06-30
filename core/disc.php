@@ -6,7 +6,6 @@
  *	框架核心入口文件
  *
  */
-
 error_reporting(E_ALL);
 
 define('IN_DISC', true);
@@ -26,8 +25,6 @@ if(function_exists('spl_autoload_register')) {
 	}
 }
 
-C::creatapp();
-
 class core
 {
 	private static $_tables;
@@ -46,11 +43,10 @@ class core
 		return self::$_app;
 	}
 
-	public static function import($name, $folder = 'class') {
+	public static function import($name, $folder = '') {
 		$key = $folder.$name;
 		if(!isset(self::$_imports[$key])) {
-			$file = CORE_PATH.'/'.$folder.'/'.$name;
-
+			$file = CORE_PATH.'/'.$folder.'/'.$name.'.php';
 			if(is_file($file)) {
 				include $file;
 				self::$_imports[$key] = true;
@@ -80,8 +76,14 @@ class core
 	}
 
 	public static function autoload($class) {
-
-		$file = $class.'.php';
+		$class = strtolower($class);
+		if(strpos($class, '_') !== false) {
+			list($folder) = explode('_', $class);
+			$_folder = $folder == 'disc' ? '.' : $folder; 
+			$file = 'class/'.$_folder.'/'.$class;
+		} else {
+			$file = 'class/'.$class;
+		}
 
 		try {
 
@@ -103,3 +105,5 @@ class core
 
 class C extends core {}
 class DB extends disc_database {}
+
+C::creatapp();

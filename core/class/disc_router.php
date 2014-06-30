@@ -24,9 +24,9 @@ class disc_router
 
 	private function _init() {
 		$this->_config['controller_identifier'] = empty($this->_config['controller_identifier']) ? "c" : $this->_config['controller_identifier'];
-		$this->_config['action_identifier'] = empty($this->_config['action_identifier']) ? "c" : $this->_config['action_identifier'];
-		$this->_config['controller_default'] = empty($this->_config['controller_default']) ? "c" : $this->_config['controller_default'];
-		$this->_config['action_default'] = empty($this->_config['action_default']) ? "c" : $this->_config['action_default'];
+		$this->_config['action_identifier'] = empty($this->_config['action_identifier']) ? "m" : $this->_config['action_identifier'];
+		$this->_config['controller_default'] = empty($this->_config['controller_default']) ? "index" : $this->_config['controller_default'];
+		$this->_config['action_default'] = empty($this->_config['action_default']) ? "index" : $this->_config['action_default'];
 	}
 
 	public function router() {

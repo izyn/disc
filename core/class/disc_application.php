@@ -29,6 +29,7 @@ class disc_application
 		$this->_init_config();
 		$this->_init_input();
 		$this->_init_output();
+		$this->_init_db();
 		$this->_init_uri();
 	}
 
@@ -70,7 +71,7 @@ class disc_application
 		}
 
 		if (empty($_config)) {
-			system_error('Oops! Invalid Config!');
+			//system_error('Oops! Invalid Config!');
 		}
 
 		$this->var = & $_config;
@@ -120,6 +121,12 @@ class disc_application
 		}
 
 		return true;
+	}
+
+	private function _init_db() {
+		if(isset($this->var['db'])) {
+			DB::init($this->var['db']);
+		}
 	}
 
 	private function _init_uri() {

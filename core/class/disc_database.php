@@ -14,10 +14,8 @@ class disc_database {
 
 	public static $db;
 
-	public static $driver;
-
 	public static function init($config) {
-		self::$db = new db_driver;
+		self::$db = new db_driver_mysql;
 		self::$db->set_config($config);
 		self::$db->connect();
 	}
@@ -42,21 +40,18 @@ class disc_database {
 		} else {
 			$where = $condition;
 		}
-		$limit = dintval($limit);
+		$limit = intval($limit);
 		$sql = "DELETE FROM " . self::table($table) . " WHERE $where " . ($limit > 0 ? "LIMIT $limit" : '');
 		return self::query($sql, ($unbuffered ? 'UNBUFFERED' : ''));
 	}
 
-	public static function insert($table, $data, $return_insert_id = false, $replace = false, $silent = false) {
+	public static function insert($table, $data, $return_insert_id = false) {
 
 		$sql = self::implode($data);
 
-		$cmd = $replace ? 'REPLACE INTO' : 'INSERT INTO';
-
 		$table = self::table($table);
-		$silent = $silent ? 'SILENT' : '';
 
-		return self::query("$cmd $table SET $sql", null, $silent, !$return_insert_id);
+		return self::query("INSERT INTO $table SET $sql", null, !$return_insert_id);
 	}
 
 	public static function update($table, $data, $condition, $unbuffered = false, $low_priority = false) {
@@ -82,21 +77,17 @@ class disc_database {
 		return self::$db->insert_id();
 	}
 
-	public static function fetch($resourceid, $type = 'MYSQL_ASSOC') {
-		return self::$db->fetch_array($resourceid, $type);
-	}
-
-	public static function fetch_first($sql, $arg = array(), $silent = false) {
-		$res = self::query($sql, $arg, $silent, false);
+	public static function fetch_first($sql, $arg = array()) {
+		$res = self::query($sql, $arg);
 		$ret = self::$db->fetch_array($res);
 		self::$db->free_result($res);
 		return $ret ? $ret : array();
 	}
 
-	public static function fetch_all($sql, $arg = array(), $keyfield = '', $silent=false) {
+	public static function fetch_all($sql, $arg = array(), $keyfield = '') {
 
 		$data = array();
-		$query = self::query($sql, $arg, $silent, false);
+		$query = self::query($sql, $arg, false);
 		while ($row = self::$db->fetch_array($query)) {
 			if ($keyfield && isset($row[$keyfield])) {
 				$data[$row[$keyfield]] = $row;
@@ -108,30 +99,23 @@ class disc_database {
 		return $data;
 	}
 
-	public static function result($resourceid, $row = 0) {
-		return self::$db->result($resourceid, $row);
-	}
-
-	public static function result_first($sql, $arg = array(), $silent = false) {
-		$res = self::query($sql, $arg, $silent, false);
-		$ret = self::$db->result($res, 0);
+	public static function result_first($sql, $arg = array()) {
+		$res = self::query($sql, $arg, false);
+		$ret = self::$db->result($res);
 		self::$db->free_result($res);
 		return $ret;
 	}
 
-	public static function query($sql, $arg = array(), $silent = false, $unbuffered = false) {
+	public static function query($sql, $arg = array(), $unbuffered = false) {
 		if (!empty($arg)) {
 			if (is_array($arg)) {
 				$sql = self::format($sql, $arg);
-			} elseif ($arg === 'SILENT') {
-				$silent = true;
-
 			} elseif ($arg === 'UNBUFFERED') {
 				$unbuffered = true;
 			}
 		}
 		self::checkquery($sql);
-		$ret = self::$db->query($sql, $silent, $unbuffered);
+		$ret = self::$db->query($sql, $unbuffered);
 		if (!$unbuffered && $ret) {
 			$cmd = trim(strtoupper(substr($sql, 0, strpos($sql, ' '))));
 			if ($cmd === 'SELECT') {
@@ -294,7 +278,7 @@ class disc_database {
 		if (!$count) {
 			return $sql;
 		} elseif ($count > count($arg)) {
-			throw new DbException('SQL string format error! This SQL need "' . $count . '" vars to replace into.', 0, $sql);
+			self::$db->halt('SQL string format error! This SQL need "' . $count . '" vars to replace into.', $sql);
 		}
 
 		$len = strlen($sql);
@@ -344,7 +328,29 @@ class discuz_database_safecheck {
 
 	public static function checkquery($sql) {
 		if (self::$config === null) {
-			self::$config = getglobal('config/security/querysafe');
+			$querysafe_config = array();
+			$querysafe_config['status'] = 1;
+			$querysafe_config['dfunction']['0'] = 'load_file';
+			$querysafe_config['dfunction']['1'] = 'hex';
+			$querysafe_config['dfunction']['2'] = 'substring';
+			$querysafe_config['dfunction']['3'] = 'if';
+			$querysafe_config['dfunction']['4'] = 'ord';
+			$querysafe_config['dfunction']['5'] = 'char';
+			$querysafe_config['daction']['0'] = '@';
+			$querysafe_config['daction']['1'] = 'intooutfile';
+			$querysafe_config['daction']['2'] = 'intodumpfile';
+			$querysafe_config['daction']['3'] = 'unionselect';
+			$querysafe_config['daction']['4'] = '(select';
+			$querysafe_config['daction']['5'] = 'unionall';
+			$querysafe_config['daction']['6'] = 'uniondistinct';
+			$querysafe_config['dnote']['0'] = '/*';
+			$querysafe_config['dnote']['1'] = '*/';
+			$querysafe_config['dnote']['2'] = '#';
+			$querysafe_config['dnote']['3'] = '--';
+			$querysafe_config['dnote']['4'] = '"';
+			$querysafe_config['dlikehex'] = 1;
+			$querysafe_config['afullnote'] = '0';
+			self::$config = $querysafe_config;
 		}
 		if (self::$config['status']) {
 			$check = 1;
@@ -462,202 +468,4 @@ class discuz_database_safecheck {
 
 		return 1;
 	}
-
-	public static function setconfigstatus($data) {
-		self::$config['status'] = $data ? 1 : 0;
-	}
-
 }
-
-class db_driver
-{
-	var $tablepre;
-	var $version = '';
-	var $drivertype = 'mysql';
-	var $querynum = 0;
-	var $slaveid = 0;
-	var $curlink;
-	var $link = array();
-	var $config = array();
-	var $sqldebug = array();
-	var $map = array();
-
-	function db_mysql($config = array()) {
-		if(!empty($config)) {
-			$this->set_config($config);
-		}
-	}
-
-	function set_config($config) {
-		$this->config = &$config;
-		$this->tablepre = $config['1']['tablepre'];
-	}
-
-	function connect($serverid = 1) {
-
-		if(empty($this->config) || empty($this->config[$serverid])) {
-			$this->halt('config_db_not_found');
-		}
-
-		$this->link[$serverid] = $this->_dbconnect(
-			$this->config[$serverid]['dbhost'],
-			$this->config[$serverid]['dbuser'],
-			$this->config[$serverid]['dbpw'],
-			$this->config[$serverid]['dbcharset'],
-			$this->config[$serverid]['dbname'],
-			$this->config[$serverid]['pconnect']
-			);
-		$this->curlink = $this->link[$serverid];
-
-	}
-
-	function _dbconnect($dbhost, $dbuser, $dbpw, $dbcharset, $dbname, $pconnect, $halt = true) {
-
-		if($pconnect) {
-			$link = @mysql_pconnect($dbhost, $dbuser, $dbpw, MYSQL_CLIENT_COMPRESS);
-		} else {
-			$link = @mysql_connect($dbhost, $dbuser, $dbpw, 1, MYSQL_CLIENT_COMPRESS);
-		}
-		if(!$link) {
-			$halt && $this->halt('notconnect', $this->errno());
-		} else {
-			$this->curlink = $link;
-			if($this->version() > '4.1') {
-				$dbcharset = $dbcharset ? $dbcharset : $this->config[1]['dbcharset'];
-				$serverset = $dbcharset ? 'character_set_connection='.$dbcharset.', character_set_results='.$dbcharset.', character_set_client=binary' : '';
-				$serverset .= $this->version() > '5.0.1' ? ((empty($serverset) ? '' : ',').'sql_mode=\'\'') : '';
-				$serverset && mysql_query("SET $serverset", $link);
-			}
-			$dbname && @mysql_select_db($dbname, $link);
-		}
-		return $link;
-	}
-
-	function table_name($tablename) {
-		if(!empty($this->map) && !empty($this->map[$tablename])) {
-			$id = $this->map[$tablename];
-			if(!$this->link[$id]) {
-				$this->connect($id);
-			}
-			$this->curlink = $this->link[$id];
-		} else {
-			$this->curlink = $this->link[1];
-		}
-		return $this->tablepre.$tablename;
-	}
-
-	function select_db($dbname) {
-		return mysql_select_db($dbname, $this->curlink);
-	}
-
-	function fetch_array($query, $result_type = MYSQL_ASSOC) {
-		if($result_type == 'MYSQL_ASSOC') $result_type = MYSQL_ASSOC;
-		return mysql_fetch_array($query, $result_type);
-	}
-
-	function fetch_first($sql) {
-		return $this->fetch_array($this->query($sql));
-	}
-
-	function result_first($sql) {
-		return $this->result($this->query($sql), 0);
-	}
-
-	public function query($sql, $silent = false, $unbuffered = false) {
-		if(defined('DISCUZ_DEBUG') && DISCUZ_DEBUG) {
-			$starttime = microtime(true);
-		}
-
-		if('UNBUFFERED' === $silent) {
-			$silent = false;
-			$unbuffered = true;
-		} elseif('SILENT' === $silent) {
-			$silent = true;
-			$unbuffered = false;
-		}
-
-		$func = $unbuffered ? 'mysql_unbuffered_query' : 'mysql_query';
-
-		if(!($query = $func($sql, $this->curlink))) {
-			if(in_array($this->errno(), array(2006, 2013)) && substr($silent, 0, 5) != 'RETRY') {
-				$this->connect();
-				return $this->query($sql, 'RETRY'.$silent);
-			}
-			if(!$silent) {
-				$this->halt($this->error(), $this->errno(), $sql);
-			}
-		}
-
-		if(defined('DISCUZ_DEBUG') && DISCUZ_DEBUG) {
-			$this->sqldebug[] = array($sql, number_format((microtime(true) - $starttime), 6), debug_backtrace(), $this->curlink);
-		}
-
-		$this->querynum++;
-		return $query;
-	}
-
-	function affected_rows() {
-		return mysql_affected_rows($this->curlink);
-	}
-
-	function error() {
-		return (($this->curlink) ? mysql_error($this->curlink) : mysql_error());
-	}
-
-	function errno() {
-		return intval(($this->curlink) ? mysql_errno($this->curlink) : mysql_errno());
-	}
-
-	function result($query, $row = 0) {
-		$query = @mysql_result($query, $row);
-		return $query;
-	}
-
-	function num_rows($query) {
-		$query = mysql_num_rows($query);
-		return $query;
-	}
-
-	function num_fields($query) {
-		return mysql_num_fields($query);
-	}
-
-	function free_result($query) {
-		return mysql_free_result($query);
-	}
-
-	function insert_id() {
-		return ($id = mysql_insert_id($this->curlink)) >= 0 ? $id : $this->result($this->query("SELECT last_insert_id()"), 0);
-	}
-
-	function fetch_row($query) {
-		$query = mysql_fetch_row($query);
-		return $query;
-	}
-
-	function fetch_fields($query) {
-		return mysql_fetch_field($query);
-	}
-
-	function version() {
-		if(empty($this->version)) {
-			$this->version = mysql_get_server_info($this->curlink);
-		}
-		return $this->version;
-	}
-
-	function escape_string($str) {
-		return mysql_escape_string($str);
-	}
-
-	function close() {
-		return mysql_close($this->curlink);
-	}
-
-	function halt($message = '', $code = 0, $sql = '') {
-		throw new DbException($message, $code, $sql);
-	}
-
-}
-
-?>

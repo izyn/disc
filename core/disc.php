@@ -46,7 +46,7 @@ class core
 	public static function import($name, $folder = '') {
 		$key = $folder.$name;
 		if(!isset(self::$_imports[$key])) {
-			$file = CORE_PATH.'/'.$folder.'/'.$name.'.php';
+			$file = CORE_PATH.$folder.'/'.$name.'.php';
 			if(is_file($file)) {
 				include $file;
 				self::$_imports[$key] = true;

@@ -44,18 +44,27 @@ class tinyPHP {
 		return self::$_app;
 	}
 
+	/**
+     * 打印错误信息
+     */
 	public static function handleError($errno, $errstr, $errfile, $errline) {
 		if($errno) {
 			system_error($errstr.' ['.$errfile.' on '.$errline.']');
 		}
 	}
 
+	/**
+     * 构造函数
+     */
 	public function __construct() {
 		$this->_init_env();
 		$this->_xss_check();
 		$this->_init_uri();
 	}
 
+	/**
+     * 初始化框架运行环境
+     */
 	private function _init_env() {
 
 		global $_config;
@@ -96,6 +105,9 @@ class tinyPHP {
 		$this->var = & $_config;
 	}
 
+	/**
+     * xss攻击检测
+     */
 	private function _xss_check() {
 
 		static $check = array('"', '>', '<', '\'', '(', ')', 'CONTENT-TRANSFER-ENCODING');
@@ -117,6 +129,9 @@ class tinyPHP {
 		return true;
 	}
 
+	/**
+     * uri路由初始化
+     */
 	private function _init_uri() {
 
 		$this->var['uri_model'] = empty($this->var['uri_model']) ? 1 : $this->var['uri_model'];
@@ -146,6 +161,9 @@ class tinyPHP {
 		}
 	}
 
+	/**
+     * 运行实例
+     */
 	public function run() {
 		global $_config;
 		set_error_handler(array('tinyPHP', 'handleError'));
@@ -312,15 +330,31 @@ class db_driver_mysql
 		return $this->query("DELETE FROM $table WHERE $where ");
     }
 
+    /**
+     * 获取结果集
+     * @param $query 数据指针
+     * @param string $result_type 结果集类型
+     * @return array 结果
+     */
     private function fetch_array($query, $result_type = MYSQL_ASSOC) {
 		return mysql_fetch_array($query, $result_type);
 	}
 
+	/**
+     * 释放结果内存
+     * @param $query 数据指针
+     * @return bool
+     */
 	private function free_result($query) {
 		return mysql_free_result($query);
 	}
 
-	private function implode($array, $glue = ',') {
+	/**
+     * 组装sql
+     * @param array $array 数组
+     * @return string
+     */
+	private function implode($array = array(), $glue = ',') {
 		$sql = $comma = '';
 		$glue = ' ' . trim($glue) . ' ';
 		foreach ($array as $k => $v) {
@@ -330,14 +364,26 @@ class db_driver_mysql
 		return $sql;
 	}
 
+	/**
+     * 获取错误
+     * @return string 错误信息
+     */
     private function error() {
 		return (($this->curlink) ? mysql_error($this->curlink) : mysql_error());
 	}
 
+	/**
+     * 获取错误码
+     * @return int 错误码
+     */
 	private function errno() {
 		return intval(($this->curlink) ? mysql_errno($this->curlink) : mysql_errno());
 	}
 
+	/**
+     * 打印错误信息
+     * @param string 错误信息
+     */
 	private function halt($message) {
 		system_error($message);
 	}

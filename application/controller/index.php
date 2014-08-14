@@ -1,10 +1,6 @@
 <?php
 
-if(!defined('IN_DISC')) {
-	exit('Access Denied');
-}
-
-class index_controller extends disc_controller {
+class index_controller extends tiny_controller {
 
 	function index() {
 

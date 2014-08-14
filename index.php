@@ -28,6 +28,7 @@ $_config = array();
 
 /*-- 应用目录 --*/
 $_config['app_path'] = './application';
+$_config['uri_model'] = 2;
 
 /*
  *-----------------------------------------------------------
@@ -96,5 +97,3 @@ $_config['db']['dbname'] = 'test';
 include './tinyPHP.class.php';
 
 tinyPHP::creatapp()->run();
-
-DB()->delete('air_lines', 'id = 1');

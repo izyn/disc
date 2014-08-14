@@ -167,7 +167,15 @@ class tinyPHP {
 	public function run() {
 		global $_config;
 		set_error_handler(array('tinyPHP', 'handleError'));
-		dump($_config);
+		$controller_file = dirname(__FILE__).$_config['app_path'].'/controller/'.$_config['controller'].'.php'; 
+		if (file_exists($controller_file)) {
+			include $controller_file;
+			$_class = $_config['controller'].'_controller';
+			$_obj = new $_class();
+			$_obj->$_config['action']();
+		} else {
+			system_error("Lost file [".$controller_file."]");
+		}
 	}
 }
 
@@ -386,6 +394,20 @@ class db_driver_mysql
      */
 	private function halt($message) {
 		system_error($message);
+	}
+}
+
+class tiny_controller {
+
+	function view($data, $tpl = "") {
+		global $_config;
+
+		$tpl = $tpl ? (file_exists($tpl) ? $tpl : dirname(__FILE__).$_config['app_path'].'/view/'.$tpl.'.php') : dirname(__FILE__).$_config['app_path'].'/view/'.$_config['action'].'.php';
+		if (file_exists($tpl)) {
+			include $tpl;
+		} else {
+			system_error('Lost file ['.$tpl.']');
+		}
 	}
 }
 

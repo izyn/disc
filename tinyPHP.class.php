@@ -19,6 +19,29 @@ function DB() {
 	return $db;
 }
 
+/**
+ * xss攻击检测
+ */
+function _xss_check() {
+
+	static $check = array('"', '>', '<', '\'', '(', ')', 'CONTENT-TRANSFER-ENCODING');
+
+	if($_SERVER['REQUEST_METHOD'] == 'GET' ) {
+		$temp = $_SERVER['REQUEST_URI'];
+	} else {
+		$temp = $_SERVER['REQUEST_URI'].file_get_contents('php://input');
+	}
+
+	$temp = strtoupper(urldecode(urldecode($temp)));
+	foreach ($check as $str) {
+		if(strpos($temp, $str) !== false) {
+			system_error('request_tainting');
+		}
+	}
+
+	return true;
+}
+
 class tinyPHP {
 
 	/**
@@ -58,7 +81,6 @@ class tinyPHP {
      */
 	public function __construct() {
 		$this->_init_env();
-		$this->_xss_check();
 		$this->_init_uri();
 	}
 
@@ -80,14 +102,6 @@ class tinyPHP {
 			error_reporting(0);
 		}
 
-		if(PHP_VERSION < '5.3.0') {
-			set_magic_quotes_runtime(0);
-		}
-
-		if (isset($_GET['GLOBALS']) ||isset($_POST['GLOBALS']) ||  isset($_COOKIE['GLOBALS']) || isset($_FILES['GLOBALS'])) {
-			system_error('request_tainting');
-		}
-
 		if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()) {
 			$_GET = tiny_stripslashes($_GET);
 			$_POST = tiny_stripslashes($_POST);
@@ -103,30 +117,6 @@ class tinyPHP {
 		header('Content-Type: text/html; charset=utf-8');
 
 		$this->var = & $_config;
-	}
-
-	/**
-     * xss攻击检测
-     */
-	private function _xss_check() {
-
-		static $check = array('"', '>', '<', '\'', '(', ')', 'CONTENT-TRANSFER-ENCODING');
-
-		if($_SERVER['REQUEST_METHOD'] == 'GET' ) {
-			$temp = $_SERVER['REQUEST_URI'];
-		} else {
-			//$temp = $_SERVER['REQUEST_URI'].file_get_contents('php://input');
-			$temp = '';
-		}
-
-		$temp = strtoupper(urldecode(urldecode($temp)));
-		foreach ($check as $str) {
-			if(strpos($temp, $str) !== false) {
-				system_error('request_tainting');
-			}
-		}
-
-		return true;
 	}
 
 	/**
@@ -165,17 +155,16 @@ class tinyPHP {
      * 运行实例
      */
 	public function run() {
-		global $_config;
 		set_error_handler(array('tinyPHP', 'handleError'));
-		$controller_file = dirname(__FILE__).$_config['app_path'].'/controller/'.$_config['controller'].'.php'; 
+		$controller_file = dirname(__FILE__).$this->var['app_path'].'/controller/'.$this->var['controller'].'.php'; 
 		if (file_exists($controller_file)) {
 			include $controller_file;
-			$_class = $_config['controller'].'_controller';
+			$_class = $this->var['controller'].'_controller';
 			$_obj = new $_class();
-			if (method_exists($_obj, $_config['action'])) {
-				$_obj->$_config['action']();
+			if (method_exists($_obj, $_action = $this->var['action'])) {
+				$_obj->$_action();
 			} else {
-				system_error("Call to undefined method ".$_class."::".$_config['action']."()");
+				system_error("Call to undefined method ".$_class."::".$this->var['action']."()");
 			}
 		} else {
 			system_error("Lost file [".$controller_file."]");

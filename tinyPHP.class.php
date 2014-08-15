@@ -145,7 +145,7 @@ class tinyPHP {
 			$this->var['action'] = empty($_GET[$this->var['action_identifier']]) ? $this->var['action_default'] : $_GET[$this->var['action_identifier']];
 		} elseif ($this->var['uri_model'] == 2) {
 			$php_file = trim($_SERVER['SCRIPT_NAME'], "/");
-				$request_uri = explode("/", trim($_SERVER['REQUEST_URI'], "/"));
+				$request_uri = explode("/", trim(str_replace("?".trim($_SERVER['QUERY_STRING']), "", trim($_SERVER['REQUEST_URI'])), "/"));
 			if ($request_uri[0] == $php_file || empty($request_uri[0])) {
 				array_shift($request_uri);
 			}
@@ -172,7 +172,11 @@ class tinyPHP {
 			include $controller_file;
 			$_class = $_config['controller'].'_controller';
 			$_obj = new $_class();
-			$_obj->$_config['action']();
+			if (method_exists($_obj, $_config['action'])) {
+				$_obj->$_config['action']();
+			} else {
+				system_error("Call to undefined method ".$_class."::".$_config['action']."()");
+			}
 		} else {
 			system_error("Lost file [".$controller_file."]");
 		}
